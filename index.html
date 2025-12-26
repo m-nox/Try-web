@@ -1,0 +1,435 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence, useSpring, useInView } from 'framer-motion';
+import { 
+  Code, 
+  TrendingUp, 
+  Smartphone, 
+  Globe, 
+  Cpu, 
+  Zap, 
+  BarChart3, 
+  ArrowRight,
+  Menu,
+  X,
+  ChevronRight,
+  ShieldCheck,
+  Rocket
+} from 'lucide-react';
+
+// --- Helper Components ---
+
+const StatCounter = ({ value, suffix = "" }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    
+    // Simple numeric extraction for animation
+    const target = parseFloat(value.replace(/[^0-9.]/g, ''));
+    let start = 0;
+    const duration = 2000; // 2 seconds
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Power out easing
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const current = easedProgress * target;
+      
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isInView, value]);
+
+  return (
+    <span ref={ref}>
+      {displayValue.toLocaleString(undefined, { 
+        maximumFractionDigits: value.includes('.') ? 1 : 0 
+      })}
+      {value.replace(/[0-9.]/g, '')}{suffix}
+    </span>
+  );
+};
+
+const PulseLogo = ({ size = "md", className = "" }) => {
+  const dimensions = size === "lg" ? "w-12 h-12" : "w-10 h-10";
+  const iconSize = size === "lg" ? 24 : 20;
+
+  return (
+    <div className={`relative flex items-center justify-center ${dimensions} ${className}`}>
+      <motion.div
+        animate={{ scale: [1, 1.8], opacity: [0.5, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+        className="absolute inset-0 rounded-sm border-2 border-[#FF0000]"
+      />
+      <motion.div
+        animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.95, 1.05, 0.95] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute inset-0 bg-[#FF0000] blur-md rounded-sm"
+      />
+      <div className="relative z-10 w-full h-full bg-[#FF0000] rounded-sm flex items-center justify-center shadow-[0_0_20px_rgba(255,0,0,0.6)]">
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4">
+          <motion.path 
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1, ease: "easeInOut" }}
+            d="M4 20V4L20 20V4" 
+          />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+const PulseBackground = () => (
+  <div className="fixed inset-0 -z-10 bg-[#0A0A0A] overflow-hidden">
+    <div className="absolute inset-0 opacity-20"
+      style={{
+        backgroundImage: `linear-gradient(#1A1A1A 1px, transparent 1px), linear-gradient(90deg, #1A1A1A 1px, transparent 1px)`,
+        backgroundSize: '50px 50px'
+      }}
+    />
+    <motion.div
+      animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
+      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#FF0000] rounded-full blur-[150px]"
+    />
+  </div>
+);
+
+const Navbar = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-black/80 backdrop-blur-lg border-b border-white/10 py-4' : 'bg-transparent py-6'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <PulseLogo size="md" />
+          <span className="text-2xl font-black tracking-tighter text-white uppercase">NADI</span>
+        </div>
+        <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-widest">
+          {['Services', 'Method', 'Portfolio', 'Contact'].map((item) => (
+            <a key={item} href={`#${item.toLowerCase()}`} className="text-gray-400 hover:text-[#FF0000] transition-colors">{item}</a>
+          ))}
+          <button className="px-5 py-2 bg-[#FF0000] text-white rounded-sm shadow-[0_0_20px_rgba(255,0,0,0.3)] hover:scale-105 transition-all active:scale-95">GET STARTED</button>
+        </div>
+        <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          {mobileMenuOpen ? <X /> : <Menu />}
+        </button>
+      </div>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute top-full left-0 w-full bg-black border-b border-white/10 p-6 flex flex-col gap-4 md:hidden">
+            {['Services', 'Method', 'Portfolio', 'Contact'].map((item) => (
+              <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setMobileMenuOpen(false)} className="text-xl font-bold text-white uppercase tracking-tighter">{item}</a>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+};
+
+const ServiceCard = ({ service, idx }) => {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const cardRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.2 }}
+      viewport={{ once: true }}
+      className="group relative p-8 md:p-12 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md overflow-hidden"
+    >
+      {/* Spotlight Effect */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle 300px at ${mousePos.x}px ${mousePos.y}px, rgba(255,0,0,0.15), transparent)`
+        }}
+      />
+      
+      <div className="relative z-10">
+        <div className="mb-8 w-16 h-16 rounded-sm bg-[#FF0000]/10 flex items-center justify-center border border-[#FF0000]/20 group-hover:border-[#FF0000]/50 transition-all">
+          {React.cloneElement(service.icon, { size: 32 })}
+        </div>
+        <h3 className="text-3xl font-bold text-white mb-4">{service.title}</h3>
+        <p className="text-gray-400 mb-8 text-lg">{service.description}</p>
+        <ul className="grid grid-cols-2 gap-4">
+          {service.items.map((item, i) => (
+            <li key={i} className="flex items-center gap-2 text-sm text-gray-300 font-medium">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#FF0000]" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </motion.div>
+  );
+};
+
+const Hero = () => (
+  <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+    <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+      <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} viewport={{ once: true }}>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF0000]/10 border border-[#FF0000]/30 text-[#FF0000] text-xs font-bold mb-6">
+          <Zap size={14} fill="currentColor" />
+          <span>FUTURISTIC DIGITAL SOLUTIONS</span>
+        </div>
+        <h1 className="text-6xl md:text-8xl font-black text-white leading-tight mb-6 tracking-tighter uppercase">
+          The Pulse <br /> 
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF0000] to-red-400">Digital Evolution</span>
+        </h1>
+        <p className="text-xl text-gray-400 mb-10 max-w-xl leading-relaxed">High-end B2B solutions for modern enterprise. We build infrastructure that powers scale and marketing that fuels growth.</p>
+        <div className="flex flex-wrap gap-4">
+          <button className="px-8 py-4 bg-[#FF0000] text-white font-bold uppercase tracking-widest rounded-sm shadow-[0_0_25px_rgba(255,0,0,0.4)] hover:shadow-[0_0_40px_rgba(255,0,0,0.7)] transition-all">Launch Project</button>
+          <button className="px-8 py-4 border-2 border-[#FF0000] text-[#FF0000] font-bold uppercase tracking-widest rounded-sm hover:bg-[#FF0000] hover:text-white transition-all">Portfolio</button>
+        </div>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 1 }} viewport={{ once: true }} className="relative hidden md:block">
+        <div className="relative w-full aspect-square flex items-center justify-center">
+          <div className="absolute inset-0 bg-[#FF0000]/5 rounded-full blur-[100px] animate-pulse" />
+          <motion.div animate={{ scale: [1, 1.05, 1], rotate: [0, 5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="relative z-10 w-80 h-80 border-2 border-[#FF0000]/20 rounded-2xl rotate-45 flex items-center justify-center backdrop-blur-sm bg-black/40">
+            <Cpu className="w-32 h-32 text-[#FF0000] -rotate-45 drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]" />
+          </motion.div>
+          {[...Array(3)].map((_, i) => (
+            <motion.div key={i} animate={{ rotate: 360 }} transition={{ duration: 10 + i * 5, repeat: Infinity, ease: "linear" }} className="absolute border border-white/5 rounded-full" style={{ width: `${400 + i * 100}px`, height: `${400 + i * 100}px` }} />
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  </section>
+);
+
+const Method = () => {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start center", "end center"]
+  });
+
+  const lineHeight = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
+  const steps = [
+    { title: "Strategy", desc: "Mapping the digital landscape and defining KPIs.", icon: <Globe size={20} /> },
+    { title: "Execution", desc: "Building with precision using cutting-edge tech stacks.", icon: <Cpu size={20} /> },
+    { title: "Optimization", desc: "Iterative testing and refinement for peak performance.", icon: <TrendingUp size={20} /> }
+  ];
+
+  return (
+    <section id="method" ref={containerRef} className="py-24 bg-white/5 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-20">
+          <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-4">The NADI <span className="text-[#FF0000]">Method</span></h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">Dynamic workflow optimized for enterprise growth.</p>
+        </div>
+
+        <div className="relative">
+          {/* Animated Liquid Line */}
+          <div className="absolute left-1/2 top-0 w-[2px] h-full bg-white/10 -translate-x-1/2 hidden md:block">
+            <motion.div 
+              style={{ scaleY: lineHeight }} 
+              className="w-full h-full bg-[#FF0000] origin-top shadow-[0_0_15px_rgba(255,0,0,0.5)]" 
+            />
+          </div>
+
+          <div className="space-y-32">
+            {steps.map((step, idx) => (
+              <MethodStep key={idx} step={step} idx={idx} progress={scrollYProgress} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const MethodStep = ({ step, idx }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      className={`relative flex flex-col md:flex-row items-center gap-12 ${idx % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}
+    >
+      <div className={`flex-1 text-center ${idx % 2 !== 0 ? 'md:text-right' : 'md:text-left'}`}>
+        <span className="text-[#FF0000] font-black text-7xl opacity-10 block mb-2">0{idx + 1}</span>
+        <h3 className="text-3xl font-bold text-white mb-3">{step.title}</h3>
+        <p className="text-gray-400 text-lg leading-relaxed max-w-sm mx-auto md:mx-0 inline-block">{step.desc}</p>
+      </div>
+
+      <div className="relative z-10 w-20 h-20 rounded-full bg-black border-2 border-[#FF0000] flex items-center justify-center text-[#FF0000] shadow-[0_0_30px_rgba(255,0,0,0.3)] group">
+        <motion.div 
+          animate={{ rotate: 360 }} 
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 border border-[#FF0000]/20 rounded-full border-dashed" 
+        />
+        {step.icon}
+      </div>
+
+      <div className="flex-1 hidden md:block" />
+    </motion.div>
+  );
+};
+
+const Portfolio = () => {
+  const items = [
+    { title: "Z-Nexa Fintech", metric: "250%", label: "User Retention" },
+    { title: "Aero Logistics", metric: "3.2M", label: "Daily Transactions", suffix: "+" },
+    { title: "BioScale Health", metric: "180%", label: "ROI Growth" }
+  ];
+
+  return (
+    <section id="portfolio" className="py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+          <div>
+            <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-4">Proven <span className="text-[#FF0000]">Impact</span></h2>
+            <div className="h-1 w-20 bg-[#FF0000]" />
+          </div>
+          <p className="text-gray-400 max-w-md">Our metrics speak louder than proposals. We deliver high-level ROI for enterprise brands.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {items.map((item, idx) => (
+            <motion.div
+              key={idx}
+              whileHover={{ scale: 1.02, y: -5 }}
+              className="p-10 rounded-lg bg-black border border-white/10 relative overflow-hidden group transition-all"
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-[#FF0000] scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-500" />
+              <h4 className="text-xs font-black text-gray-500 mb-10 uppercase tracking-[0.2em]">{item.title}</h4>
+              <div className="flex flex-col">
+                <span className="text-6xl font-black text-white mb-2 group-hover:text-[#FF0000] transition-colors">
+                  <StatCounter value={item.metric} suffix={item.suffix} />
+                </span>
+                <span className="text-gray-400 font-bold uppercase text-xs tracking-widest">{item.label}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Services = () => {
+  const data = [
+    {
+      title: "Core Development",
+      description: "Full-stack Android, iOS, and Web solutions built for extreme performance.",
+      icon: <Code className="text-[#FF0000]" />,
+      items: ["Native App Dev", "Headless CMS", "Enterprise SaaS", "Cloud Infra"]
+    },
+    {
+      title: "Growth & Marketing",
+      description: "Data-driven strategies designed to scale your brand authority.",
+      icon: <TrendingUp className="text-[#FF0000]" />,
+      items: ["Performance Ads", "Search Dominance", "Content Strategy", "CRO Audit"]
+    }
+  ];
+
+  return (
+    <section id="services" className="py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="mb-16">
+          <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-4">Our <span className="text-[#FF0000]">Capabilities</span></h2>
+          <div className="h-1 w-20 bg-[#FF0000]" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-8">
+          {data.map((s, i) => <ServiceCard key={i} service={s} idx={i} />)}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ContactForm = () => (
+  <section id="contact" className="py-24 relative overflow-hidden">
+    <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-20 items-center">
+      <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+        <h2 className="text-5xl font-black text-white uppercase tracking-tighter mb-6">Ready to <span className="text-[#FF0000]">Scale?</span></h2>
+        <p className="text-xl text-gray-400 mb-8 max-w-md">The next phase of your digital evolution starts with a conversation.</p>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 text-gray-300 font-bold uppercase text-xs tracking-widest"><ShieldCheck className="text-[#FF0000]" size={18} /> Enterprise-grade security</div>
+          <div className="flex items-center gap-4 text-gray-300 font-bold uppercase text-xs tracking-widest"><Rocket className="text-[#FF0000]" size={18} /> Rapid deployment</div>
+        </div>
+      </motion.div>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="p-8 md:p-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-lg">
+        <form className="space-y-6" onSubmit={e => e.preventDefault()}>
+          <div className="grid md:grid-cols-2 gap-6">
+            <input type="text" className="w-full bg-white/5 border border-white/10 rounded-sm p-4 text-white focus:outline-none focus:border-[#FF0000] transition-colors" placeholder="Name" />
+            <input type="email" className="w-full bg-white/5 border border-white/10 rounded-sm p-4 text-white focus:outline-none focus:border-[#FF0000] transition-colors" placeholder="Email" />
+          </div>
+          <select className="w-full bg-white/5 border border-white/10 rounded-sm p-4 text-white focus:outline-none focus:border-[#FF0000] transition-colors"><option className="bg-black">Full-stack Development</option><option className="bg-black">Growth Marketing</option></select>
+          <textarea rows="4" className="w-full bg-white/5 border border-white/10 rounded-sm p-4 text-white focus:outline-none focus:border-[#FF0000] transition-colors" placeholder="Message" />
+          <button className="w-full py-5 bg-[#FF0000] text-white font-black uppercase tracking-widest shadow-[0_0_30px_rgba(255,0,0,0.4)] hover:shadow-[0_0_50px_rgba(255,0,0,0.6)] transition-all">Initialize Project</button>
+        </form>
+      </motion.div>
+    </div>
+  </section>
+);
+
+const Footer = () => (
+  <footer className="py-20 border-t border-white/5 bg-black">
+    <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12">
+      <div className="col-span-2">
+        <div className="flex items-center gap-4 mb-6"><PulseLogo size="md" /><span className="text-2xl font-black text-white">NADI</span></div>
+        <p className="text-gray-500 max-w-sm">Building the digital heartbeat of modern industry. Premium outsourcing for brands that demand authority.</p>
+      </div>
+      <div>
+        <h4 className="text-white font-bold mb-6 text-xs tracking-widest uppercase">Explore</h4>
+        <ul className="space-y-4 text-gray-500 text-sm"><li>Services</li><li>Portfolio</li><li>Contact</li></ul>
+      </div>
+      <div>
+        <h4 className="text-white font-bold mb-6 text-xs tracking-widest uppercase">Social</h4>
+        <ul className="space-y-4 text-gray-500 text-sm"><li>LinkedIn</li><li>Twitter</li><li>Instagram</li></ul>
+      </div>
+    </div>
+    <div className="max-w-7xl mx-auto px-6 pt-20 flex flex-col md:flex-row justify-between items-center text-[10px] font-black text-gray-700 tracking-[0.3em] uppercase">
+      <span>&copy; 2024 NADI DIGITAL SOLUTIONS</span>
+      <div className="flex gap-8"><span>Privacy</span><span>Terms</span></div>
+    </div>
+  </footer>
+);
+
+export default function App() {
+  return (
+    <div className="min-h-screen font-sans selection:bg-[#FF0000] selection:text-white bg-[#0A0A0A] text-white">
+      <PulseBackground />
+      <Navbar />
+      <Hero />
+      <Services />
+      <Method />
+      <Portfolio />
+      <ContactForm />
+      <Footer />
+    </div>
+  );
+}
